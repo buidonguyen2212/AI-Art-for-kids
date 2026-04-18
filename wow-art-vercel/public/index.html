@@ -532,15 +532,20 @@ async function callGeminiAPI() {
     imgToSend = c.toDataURL('image/jpeg', 0.5).split(',')[1];
   }
 
-  const res = await fetch('/api/analyze', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      imageBase64: imgToSend,
-      mimeType: 'image/jpeg',
-      childInfo: { name, age, gender, theme, context }
-    })
-  });
+  let res;
+  try {
+    res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageBase64: imgToSend,
+        mimeType: 'image/jpeg',
+        childInfo: { name, age, gender, theme, context }
+      })
+    });
+  } catch (networkErr) {
+    throw new Error('Không thể kết nối server. Kiểm tra mạng và thử lại.');
+  }
 
   // Xử lý response — đề phòng server trả về không phải JSON
   const text = await res.text();
