@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>WOW Art — AI Art Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #FF6B6B;
+  --primary-dark: #e55a5a;
+  --secondary: #4ECDC4;
+  --accent: #FFD93D;
+  --navy: #1a1a2e;
+  --navy-light: #16213e;
+  --cream: #fff8f0;
+  --text: #2d3436;
+  --text-light: #636e72;
+  --purple: #A29BFE;
+  --pink: #FD79A8;
+  --orange: #FF8E53;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', -apple-system, sans-serif; background: var(--cream); color: var(--text); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+input, select, textarea, button { font-family: inherit; }
+.page { display: none; min-height: 100vh; min-height: 100dvh; }
+.page.active { display: block; }
+
+/* ── Landing ── */
+.landing { background: linear-gradient(135deg, var(--cream) 0%, #ffecd2 100%); }
+.landing-inner { max-width: 480px; margin: 0 auto; padding: 40px 20px 60px; text-align: center; }
+.landing-logo { font-size: 48px; margin-bottom: 8px; }
+.landing-brand { font-size: 22px; font-weight: 800; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 4px; }
+.landing-sub { font-size: 12px; color: var(--text-light); font-style: italic; margin-bottom: 24px; }
+.landing h2 { font-size: 22px; font-weight: 700; color: var(--navy); line-height: 1.4; margin-bottom: 12px; }
+.landing .desc { font-size: 15px; color: var(--text-light); line-height: 1.6; margin-bottom: 32px; }
+.landing .desc strong { color: var(--text); }
+
+.btn-primary { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, var(--primary), var(--orange)); color: #fff; border: none; border-radius: 50px; padding: 16px 36px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 20px rgba(255,107,107,0.35); transition: transform 0.2s, box-shadow 0.2s; -webkit-tap-highlight-color: transparent; }
+.btn-primary:active { transform: scale(0.97); }
+
+.steps { display: flex; gap: 12px; margin-top: 40px; flex-wrap: wrap; justify-content: center; }
+.step-card { flex: 1 1 140px; background: #fff; border-radius: 16px; padding: 20px 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+.step-icon { font-size: 28px; margin-bottom: 8px; }
+.step-title { font-weight: 700; font-size: 13px; color: var(--navy); margin-bottom: 4px; }
+.step-desc { font-size: 12px; color: var(--text-light); }
+
+.frameworks { margin-top: 32px; background: #fff; border-radius: 16px; padding: 20px 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+.frameworks h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 14px; }
+.fw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fw-item { text-align: left; padding: 12px; border-radius: 12px; background: var(--cream); }
+.fw-emoji { font-size: 20px; margin-bottom: 4px; }
+.fw-name { font-weight: 700; font-size: 12px; color: var(--navy); }
+.fw-author { font-size: 10px; color: var(--text-light); font-style: italic; }
+.fw-q { font-size: 12px; color: var(--primary); font-weight: 600; margin-top: 4px; }
+
+.social-proof { margin-top: 28px; font-size: 12px; color: var(--text-light); }
+.social-proof strong { color: var(--text); }
+
+/* ── Upload ── */
+.upload-page { background: var(--cream); }
+.upload-inner { max-width: 480px; margin: 0 auto; padding: 16px 16px 40px; }
+.top-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.top-bar h2 { flex: 1; font-size: 17px; font-weight: 700; color: var(--navy); }
+.btn-icon { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--text-light); padding: 4px; -webkit-tap-highlight-color: transparent; }
+
+.api-box { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 14px; border: 1px solid #eee; }
+.api-label { font-size: 12px; font-weight: 600; color: var(--navy); margin-bottom: 8px; }
+.api-row { display: flex; gap: 8px; }
+.api-row input { flex: 1; padding: 10px 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 13px; outline: none; }
+.api-row input:focus { border-color: var(--secondary); }
+.btn-save { background: var(--secondary); color: #fff; border: none; border-radius: 8px; padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.api-hint { font-size: 11px; color: var(--text-light); margin-top: 8px; }
+.api-hint a { color: var(--primary); }
+
+.dropzone { background: #fff; border: 2px dashed #ddd; border-radius: 16px; padding: 40px 20px; text-align: center; cursor: pointer; margin-bottom: 16px; transition: border-color 0.3s; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
+.dropzone.has-image { padding: 0; border-color: var(--secondary); }
+.dropzone img { width: 100%; max-height: 350px; object-fit: contain; border-radius: 14px; }
+.dropzone .change-hint { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: #fff; border-radius: 8px; padding: 5px 10px; font-size: 11px; }
+.drop-icon { font-size: 40px; margin-bottom: 10px; opacity: 0.5; }
+.drop-title { font-weight: 600; font-size: 15px; color: var(--navy); }
+.drop-sub { font-size: 13px; color: var(--text-light); }
+
+.info-box { background: #fff; border-radius: 16px; padding: 18px; margin-bottom: 16px; }
+.info-box h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 14px; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.info-full { grid-column: 1 / -1; }
+.field label { font-size: 11px; font-weight: 600; color: var(--text-light); display: block; margin-bottom: 4px; }
+.field input, .field select { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 14px; outline: none; background: #fff; -webkit-appearance: none; }
+.field input:focus, .field select:focus { border-color: var(--primary); }
+
+.btn-analyze { width: 100%; padding: 16px; border-radius: 50px; border: none; font-size: 16px; font-weight: 700; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.2s; }
+.btn-analyze.ready { background: linear-gradient(135deg, var(--primary), var(--orange)); box-shadow: 0 4px 20px rgba(255,107,107,0.35); }
+.btn-analyze.disabled { background: #ccc; pointer-events: none; }
+
+/* ── Loading ── */
+.loading-page { background: linear-gradient(135deg, var(--cream) 0%, #ffecd2 100%); display: flex; align-items: center; justify-content: center; }
+.loading-inner { text-align: center; padding: 40px 24px; max-width: 420px; }
+.loading-icon { font-size: 56px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+.loading-inner h2 { font-size: 19px; font-weight: 700; color: var(--navy); margin: 20px 0 6px; }
+.loading-inner .sub { font-size: 13px; color: var(--text-light); margin-bottom: 28px; }
+.loading-tags { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 28px; }
+.loading-tag { background: #fff; border-radius: 20px; padding: 5px 12px; font-size: 11px; color: var(--text-light); box-shadow: 0 2px 8px rgba(0,0,0,0.04); animation: tagIn 0.5s both; }
+@keyframes tagIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.fact-box { background: #fff; border-radius: 14px; padding: 18px 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); text-align: left; min-height: 56px; }
+.fact-label { font-size: 11px; font-weight: 600; color: var(--primary); margin-bottom: 6px; }
+.fact-text { font-size: 13px; color: var(--text); line-height: 1.6; transition: opacity 0.4s; }
+
+/* ── Report ── */
+.report-page { background: var(--cream); }
+.report-inner { max-width: 480px; margin: 0 auto; padding: 16px 14px 60px; }
+
+.hero-card { background: linear-gradient(135deg, var(--navy), var(--navy-light)); border-radius: 20px; padding: 20px; color: #fff; margin-bottom: 16px; overflow: hidden; }
+.hero-top { display: flex; gap: 14px; align-items: flex-start; }
+.hero-img { width: 90px; height: 90px; object-fit: cover; border-radius: 12px; border: 3px solid rgba(255,255,255,0.15); flex-shrink: 0; }
+.hero-info .label { font-size: 12px; opacity: 0.7; }
+.hero-info .name { font-size: 20px; font-weight: 700; margin: 2px 0 6px; }
+.hero-style-tag { display: inline-block; background: rgba(255,255,255,0.12); border-radius: 20px; padding: 3px 12px; font-size: 11px; }
+.hero-score-row { display: flex; align-items: center; gap: 14px; margin-top: 16px; background: rgba(255,255,255,0.07); border-radius: 12px; padding: 14px; }
+.hero-score-text { flex: 1; }
+.hero-score-text .label { font-size: 11px; opacity: 0.65; margin-bottom: 4px; }
+.hero-score-text .highlight { font-size: 13px; line-height: 1.5; }
+
+/* Radar SVG */
+.radar-card { background: #fff; border-radius: 20px; padding: 18px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); text-align: center; }
+.radar-card h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 10px; }
+
+/* Dimension cards */
+.dim-card { background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+.dim-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.dim-icon { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.dim-meta { flex: 1; }
+.dim-name { font-size: 13px; font-weight: 700; color: var(--navy); }
+.dim-summary { font-size: 11px; color: var(--text-light); }
+.dim-score { font-size: 20px; font-weight: 800; }
+.progress-bar { height: 6px; border-radius: 3px; background: #eee; overflow: hidden; margin-bottom: 8px; }
+.progress-fill { height: 100%; border-radius: 3px; transition: width 1.2s ease-out; }
+.dim-details { font-size: 13px; color: var(--text); line-height: 1.6; }
+.dim-colors { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+.dim-color-tag { background: var(--cream); border-radius: 10px; padding: 2px 9px; font-size: 11px; color: var(--text-light); }
+
+/* Lowenfeld timeline */
+.timeline-card { background: #fff; border-radius: 20px; padding: 18px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+.timeline-card h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+.timeline-note { font-size: 12px; color: var(--text-light); margin-bottom: 14px; }
+.tl-item { display: flex; gap: 10px; position: relative; margin-bottom: 14px; }
+.tl-item:last-child { margin-bottom: 0; }
+.tl-line { position: absolute; left: 8px; top: 22px; width: 2px; height: calc(100% + 2px); }
+.tl-dot { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #fff; }
+.tl-dot.active { box-shadow: 0 0 0 4px rgba(255,107,107,0.2); }
+.tl-content { flex: 1; }
+.tl-stage { font-size: 12px; font-weight: 500; color: var(--text-light); }
+.tl-stage.active { font-weight: 700; color: var(--primary); }
+.tl-stage.past { color: var(--navy); }
+.tl-here { display: inline-block; background: rgba(255,107,107,0.1); color: var(--primary); border-radius: 6px; padding: 1px 7px; font-size: 10px; font-weight: 600; margin-left: 4px; }
+
+/* Art style */
+.style-card { background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 20px; padding: 22px; color: #fff; margin-bottom: 16px; }
+.style-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.style-name { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+.style-desc { font-size: 13px; line-height: 1.5; opacity: 0.9; margin-bottom: 10px; }
+.style-artists { font-size: 12px; opacity: 0.75; }
+
+/* MI mapping */
+.mi-card { background: #fff; border-radius: 20px; padding: 18px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+.mi-card h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 14px; }
+.mi-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--cream); border-radius: 10px; margin-bottom: 6px; }
+.mi-item:last-child { margin-bottom: 0; }
+.mi-icon { font-size: 20px; }
+.mi-info { flex: 1; }
+.mi-type { font-size: 13px; font-weight: 600; color: var(--navy); }
+.mi-desc { font-size: 11px; color: var(--text-light); }
+.mi-level { border-radius: 8px; padding: 3px 10px; font-size: 10px; font-weight: 600; }
+.mi-high { background: rgba(78,205,196,0.15); color: var(--secondary); }
+.mi-medium { background: rgba(255,217,61,0.2); color: #e6a800; }
+.mi-emerging { background: rgba(99,110,114,0.1); color: var(--text-light); }
+
+/* Conversation starters */
+.convo-card { background: #fff; border-radius: 20px; padding: 18px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+.convo-card h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+.convo-hint { font-size: 12px; color: var(--text-light); margin-bottom: 12px; }
+.convo-item { display: flex; gap: 8px; align-items: flex-start; padding: 10px; background: var(--cream); border-radius: 10px; margin-bottom: 6px; }
+.convo-q { font-size: 13px; color: var(--text); line-height: 1.5; }
+
+/* Tips */
+.tips-card { background: #fff; border-radius: 20px; padding: 18px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+.tips-card h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 14px; }
+.tip-item { padding: 14px; background: var(--cream); border-radius: 12px; margin-bottom: 8px; border-left: 4px solid var(--primary); }
+.tip-item:nth-child(3) { border-left-color: var(--secondary); }
+.tip-item:nth-child(4) { border-left-color: var(--accent); }
+.tip-item:last-child { margin-bottom: 0; }
+.tip-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+.tip-activity { font-size: 13px; color: var(--text); line-height: 1.5; margin-bottom: 4px; }
+.tip-why { font-size: 12px; color: var(--text-light); font-style: italic; }
+
+/* Challenge */
+.challenge-card { background: linear-gradient(135deg, var(--secondary), #45B7AA); border-radius: 20px; padding: 22px; color: #fff; margin-bottom: 16px; }
+.challenge-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.challenge-name { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+.challenge-desc { font-size: 13px; line-height: 1.5; opacity: 0.95; margin-bottom: 10px; }
+.challenge-mats { margin-bottom: 6px; }
+.challenge-mat { display: inline-block; background: rgba(255,255,255,0.2); border-radius: 8px; padding: 3px 10px; font-size: 11px; margin: 2px 4px 2px 0; }
+.challenge-goal { font-size: 12px; opacity: 0.8; }
+
+/* Overall message */
+.message-card { background: #fff; border-radius: 20px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid var(--primary); }
+.message-card .emoji { font-size: 28px; margin-bottom: 8px; }
+.message-card p { font-size: 14px; color: var(--text); line-height: 1.7; font-style: italic; }
+
+/* CTA */
+.cta-card { background: linear-gradient(135deg, var(--primary), var(--orange)); border-radius: 20px; padding: 24px; color: #fff; text-align: center; margin-bottom: 16px; }
+.cta-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.cta-card p { font-size: 13px; opacity: 0.9; margin-bottom: 16px; line-height: 1.4; }
+.btn-cta { background: #fff; color: var(--primary); border: none; border-radius: 50px; padding: 12px 28px; font-size: 15px; font-weight: 700; cursor: pointer; }
+
+.btn-new { width: 100%; padding: 14px; border-radius: 12px; border: 2px solid var(--primary); background: #fff; color: var(--primary); font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+.footer { text-align: center; margin-top: 28px; font-size: 11px; color: var(--text-light); line-height: 1.6; }
+
+/* Error */
+.error-page { background: var(--cream); display: flex; align-items: center; justify-content: center; }
+.error-inner { text-align: center; padding: 40px 24px; max-width: 360px; }
+.error-inner h2 { font-size: 18px; font-weight: 700; color: var(--navy); margin: 12px 0 8px; }
+.error-inner p { font-size: 13px; color: var(--text-light); line-height: 1.6; margin-bottom: 24px; }
+.error-btns { display: flex; gap: 10px; justify-content: center; }
+.btn-outline { padding: 10px 20px; border-radius: 10px; border: 1px solid #ddd; background: #fff; font-size: 13px; cursor: pointer; color: var(--text); }
+.btn-retry { padding: 10px 20px; border-radius: 10px; border: none; background: var(--primary); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+/* Score ring */
+.score-ring { position: relative; display: inline-block; }
+.score-ring svg { transform: rotate(-90deg); }
+.score-ring .value { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+</style>
+</head>
+<body>
+
+<!-- ════════════ LANDING ════════════ -->
+<div id="pg-landing" class="page active">
+  <div class="landing">
+    <div class="landing-inner">
+      <div class="landing-logo">🎨</div>
+      <div class="landing-brand">WOW Art — AI Art Analysis</div>
+      <div class="landing-sub">Powered by Lowenfeld · Gardner · Vygotsky · Reggio Emilia</div>
+
+      <h2>Bức tranh của con đang<br>kể câu chuyện gì?</h2>
+      <p class="desc">AI phân tích tranh trẻ theo <strong>phương pháp giáo dục nghệ thuật quốc tế</strong> — giúp ba mẹ hiểu tâm lý, khả năng và cách đồng hành cùng con.</p>
+
+      <button class="btn-primary" onclick="showPage('pg-upload')">📤 Tải tranh con lên ngay</button>
+
+      <div class="steps">
+        <div class="step-card"><div class="step-icon">📸</div><div class="step-title">1. Chụp tranh</div><div class="step-desc">Upload ảnh tranh bé vẽ</div></div>
+        <div class="step-card"><div class="step-icon">🧠</div><div class="step-title">2. AI phân tích</div><div class="step-desc">6 chiều phát triển chuẩn quốc tế</div></div>
+        <div class="step-card"><div class="step-icon">💡</div><div class="step-title">3. Nhận gợi ý</div><div class="step-desc">Hoạt động phù hợp cho bé</div></div>
+      </div>
+
+      <div class="frameworks">
+        <h3>Phân tích dựa trên 4 lớp khoa học</h3>
+        <div class="fw-grid">
+          <div class="fw-item"><div class="fw-emoji">📊</div><div class="fw-name">Giai đoạn phát triển</div><div class="fw-author">Viktor Lowenfeld</div><div class="fw-q">Con đang ở đâu?</div></div>
+          <div class="fw-item"><div class="fw-emoji">❤️</div><div class="fw-name">Cảm xúc & Tâm lý</div><div class="fw-author">Alschuler & Hattwick</div><div class="fw-q">Con đang cảm thấy gì?</div></div>
+          <div class="fw-item"><div class="fw-emoji">🧠</div><div class="fw-name">Trí thông minh đa dạng</div><div class="fw-author">Howard Gardner</div><div class="fw-q">Con giỏi gì?</div></div>
+          <div class="fw-item"><div class="fw-emoji">🚀</div><div class="fw-name">Bước tiếp theo</div><div class="fw-author">Vygotsky & Reggio</div><div class="fw-q">Ba mẹ nên làm gì?</div></div>
+        </div>
+      </div>
+
+      <p class="social-proof">Đã phân tích <strong>2,847+</strong> bức tranh · Tin tưởng bởi <strong>1,200+</strong> phụ huynh</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ UPLOAD ════════════ -->
+<div id="pg-upload" class="page upload-page">
+  <div class="upload-inner">
+    <div class="top-bar">
+      <button class="btn-icon" onclick="showPage('pg-landing')">←</button>
+      <h2>Tải tranh lên</h2>
+    </div>
+
+    <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+      <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleFileSelect(event)">
+      <div id="drop-placeholder">
+        <div class="drop-icon">📷</div>
+        <div class="drop-title">Nhấn để chọn ảnh tranh</div>
+        <div class="drop-sub">hoặc kéo thả vào đây</div>
+      </div>
+      <div id="drop-preview" style="display:none; position:relative; width:100%;">
+        <img id="preview-img" src="" alt="Preview" style="width:100%; max-height:350px; object-fit:contain; border-radius:14px;">
+        <div class="change-hint">Nhấn để đổi ảnh</div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <h3>Thông tin bé</h3>
+      <div class="info-grid">
+        <div class="field info-full">
+          <label>Tên bé *</label>
+          <input type="text" id="child-name" placeholder="Ví dụ: Bông">
+        </div>
+        <div class="field">
+          <label>Tuổi *</label>
+          <select id="child-age">
+            <option value="">Chọn tuổi</option>
+            <option value="2">2 tuổi</option><option value="3">3 tuổi</option><option value="4">4 tuổi</option>
+            <option value="5">5 tuổi</option><option value="6">6 tuổi</option><option value="7">7 tuổi</option>
+            <option value="8">8 tuổi</option><option value="9">9 tuổi</option><option value="10">10 tuổi</option>
+            <option value="11">11 tuổi</option><option value="12">12 tuổi</option><option value="13">13 tuổi</option>
+            <option value="14">14 tuổi</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Giới tính</label>
+          <select id="child-gender">
+            <option value="">Không chọn</option>
+            <option value="Bé trai">Bé trai</option>
+            <option value="Bé gái">Bé gái</option>
+          </select>
+        </div>
+        <div class="field info-full">
+          <label>Chủ đề tranh (nếu có)</label>
+          <input type="text" id="child-theme" placeholder="Ví dụ: Gia đình, thiên nhiên, tự do...">
+        </div>
+        <div class="field info-full">
+          <label>Ghi chú thêm cho AI</label>
+          <input type="text" id="child-context" placeholder="Ví dụ: Bé vẽ tự do ở nhà, sau buổi đi chơi...">
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-analyze disabled" id="btn-analyze" onclick="startAnalysis()">✨ Phân tích bức tranh</button>
+  </div>
+</div>
+
+<!-- ════════════ LOADING ════════════ -->
+<div id="pg-loading" class="page loading-page">
+  <div class="loading-inner">
+    <div class="loading-icon">🔍🎨</div>
+    <h2 id="loading-text">AI đang đọc bức tranh...</h2>
+    <p class="sub">Phân tích 6 chiều phát triển theo chuẩn quốc tế</p>
+    <div class="loading-tags">
+      <span class="loading-tag" style="animation-delay:0s">Màu sắc</span>
+      <span class="loading-tag" style="animation-delay:0.1s">Nét vẽ</span>
+      <span class="loading-tag" style="animation-delay:0.2s">Tư duy</span>
+      <span class="loading-tag" style="animation-delay:0.3s">Sáng tạo</span>
+      <span class="loading-tag" style="animation-delay:0.4s">Phát triển</span>
+      <span class="loading-tag" style="animation-delay:0.5s">Cảm xúc</span>
+    </div>
+    <div class="fact-box">
+      <div class="fact-label">💡 Bạn biết không?</div>
+      <div class="fact-text" id="fact-text"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ REPORT ════════════ -->
+<div id="pg-report" class="page report-page">
+  <div class="report-inner" id="report-content">
+    <!-- Filled by JS -->
+  </div>
+</div>
+
+<!-- ════════════ ERROR ════════════ -->
+<div id="pg-error" class="page error-page">
+  <div class="error-inner">
+    <div style="font-size:48px">😕</div>
+    <h2>Có lỗi xảy ra</h2>
+    <p id="error-msg"></p>
+    <div class="error-btns">
+      <button class="btn-outline" onclick="showPage('pg-upload')">← Quay lại</button>
+      <button class="btn-retry" onclick="retryAnalysis()">Thử lại</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let imageBase64 = '';
+let imageMimeType = '';
+let currentResult = null;
+let childInfoData = {};
+
+const FUN_FACTS = [
+  "Trẻ 3 tuổi có thể phân biệt và sử dụng trung bình 5-7 màu khác nhau.",
+  'Pablo Picasso từng nói: "Mọi đứa trẻ đều là nghệ sĩ. Vấn đề là làm sao giữ được điều đó khi lớn lên."',
+  "Nghiên cứu cho thấy trẻ vẽ tranh thường xuyên có khả năng giải quyết vấn đề tốt hơn 30%.",
+  "Màu sắc trẻ chọn phản ánh cảm xúc — đây là ngôn ngữ không lời quan trọng nhất của bé.",
+  "Viktor Lowenfeld phát hiện: mỗi trẻ trải qua 6 giai đoạn phát triển nghệ thuật — giống như tập đi, tập nói.",
+  "Howard Gardner chứng minh: trí thông minh không gian (spatial intelligence) có thể đánh giá qua tranh vẽ.",
+  'Phương pháp Reggio Emilia gọi nghệ thuật là "ngôn ngữ thứ 100" của trẻ — bé nói qua nét vẽ.',
+  'Trẻ vẽ "người que" ở tuổi 4-5 là hoàn toàn bình thường — đó là giai đoạn Pre-schematic của Lowenfeld.',
+];
+
+const LOWENFELD_STAGES = [
+  { name: "Scribbling", age: "2-4", icon: "✏️", desc: "Vẽ nguệch ngoạc — khám phá nét vẽ" },
+  { name: "Pre-schematic", age: "4-7", icon: "🎨", desc: "Hình cơ bản — người đầu-chân" },
+  { name: "Schematic", age: "7-9", icon: "🏠", desc: "Schema cố định — có đường nền" },
+  { name: "Gang Age", age: "9-12", icon: "🌟", desc: "Chi tiết & tỷ lệ chính xác hơn" },
+  { name: "Pseudo-naturalistic", age: "12-14", icon: "🎭", desc: "Tả thực & phê bình bản thân" },
+];
+
+const DIM_META = {
+  color_emotion:        { icon: "🎨", color: "#FF6B6B", label: "Màu sắc & Cảm xúc" },
+  line_motor:           { icon: "✏️", color: "#4ECDC4", label: "Nét vẽ & Vận động tinh" },
+  cognitive:            { icon: "🧠", color: "#A29BFE", label: "Nhận thức & Tư duy" },
+  imagination:          { icon: "✨", color: "#FFD93D", label: "Trí tưởng tượng" },
+  developmental_stage:  { icon: "🏆", color: "#FF8E53", label: "Giai đoạn phát triển" },
+  emotional_expression: { icon: "❤️", color: "#FD79A8", label: "Biểu đạt cảm xúc" },
+};
+
+const MI_ICONS = { "Spatial":"👁️","Linguistic":"📖","Interpersonal":"👥","Logical-Mathematical":"🔢","Bodily-Kinesthetic":"⚡","Naturalistic":"🌿","Musical":"🎵","Intrapersonal":"💜" };
+
+// ═══════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ═══════════════════════════════════════════════
+// FILE HANDLING
+// ═══════════════════════════════════════════════
+const dropzone = document.getElementById('dropzone');
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.style.borderColor = '#4ECDC4'; });
+dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor = imageBase64 ? '#4ECDC4' : '#ddd'; });
+dropzone.addEventListener('drop', e => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); });
+
+function handleFileSelect(e) { handleFile(e.target.files[0]); }
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  imageMimeType = file.type;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    imageBase64 = dataUrl.split(',')[1];
+    document.getElementById('preview-img').src = dataUrl;
+    document.getElementById('drop-placeholder').style.display = 'none';
+    document.getElementById('drop-preview').style.display = 'block';
+    dropzone.classList.add('has-image');
+    checkReady();
+  };
+  reader.readAsDataURL(file);
+}
+
+// ═══════════════════════════════════════════════
+// FORM VALIDATION
+// ═══════════════════════════════════════════════
+['child-name','child-age'].forEach(id => {
+  document.getElementById(id).addEventListener('input', checkReady);
+  document.getElementById(id).addEventListener('change', checkReady);
+});
+
+function checkReady() {
+  const name = document.getElementById('child-name').value.trim();
+  const age = document.getElementById('child-age').value;
+  const ready = imageBase64 && name && age;
+  const btn = document.getElementById('btn-analyze');
+  btn.className = 'btn-analyze ' + (ready ? 'ready' : 'disabled');
+}
+
+// ═══════════════════════════════════════════════
+// API CALL (qua serverless function — API key giấu trên server)
+// ═══════════════════════════════════════════════
+async function callGeminiAPI() {
+  const name = document.getElementById('child-name').value.trim();
+  const age = document.getElementById('child-age').value;
+  const gender = document.getElementById('child-gender').value;
+  const theme = document.getElementById('child-theme').value.trim();
+  const context = document.getElementById('child-context').value.trim();
+
+  childInfoData = { name, age, gender, theme, context };
+
+  const res = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      imageBase64: imageBase64,
+      mimeType: imageMimeType,
+      childInfo: { name, age, gender, theme, context }
+    })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data?.error || `Lỗi server: ${res.status}`);
+  }
+
+  return data;
+}
+
+// ═══════════════════════════════════════════════
+// ANALYSIS FLOW
+// ═══════════════════════════════════════════════
+let factInterval, dotsInterval;
+
+function startAnalysis() {
+  showPage('pg-loading');
+  startFunFacts();
+
+  callGeminiAPI()
+    .then(result => {
+      stopFunFacts();
+      currentResult = result;
+      renderReport(result);
+      showPage('pg-report');
+    })
+    .catch(err => {
+      stopFunFacts();
+      document.getElementById('error-msg').textContent = err.message;
+      showPage('pg-error');
+    });
+}
+
+function retryAnalysis() { startAnalysis(); }
+
+function startFunFacts() {
+  let idx = Math.floor(Math.random() * FUN_FACTS.length);
+  document.getElementById('fact-text').textContent = FUN_FACTS[idx];
+  factInterval = setInterval(() => {
+    idx = (idx + 1) % FUN_FACTS.length;
+    const el = document.getElementById('fact-text');
+    el.style.opacity = 0;
+    setTimeout(() => { el.textContent = FUN_FACTS[idx]; el.style.opacity = 1; }, 300);
+  }, 4000);
+
+  let dots = '';
+  dotsInterval = setInterval(() => {
+    dots = dots.length >= 3 ? '' : dots + '.';
+    document.getElementById('loading-text').textContent = 'AI đang đọc bức tranh' + dots;
+  }, 500);
+}
+
+function stopFunFacts() { clearInterval(factInterval); clearInterval(dotsInterval); }
+
+// ═══════════════════════════════════════════════
+// RENDER REPORT
+// ═══════════════════════════════════════════════
+function renderRadarSVG(data) {
+  const size = 260, cx = size/2, cy = size/2, r = 95;
+  const dims = ['Màu sắc','Nét vẽ','Tư duy','Sáng tạo','Phát triển','Cảm xúc'];
+  const scores = [
+    data.color_emotion?.score||0, data.line_motor?.score||0, data.cognitive?.score||0,
+    data.imagination?.score||0, data.developmental_stage?.score||0, data.emotional_expression?.score||0
+  ];
+  const n = 6;
+
+  let gridLines = '';
+  for (let ring = 2; ring <= 10; ring += 2) {
+    let pts = [];
+    for (let i = 0; i < n; i++) {
+      const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+      pts.push(`${cx + r * (ring/10) * Math.cos(angle)},${cy + r * (ring/10) * Math.sin(angle)}`);
+    }
+    gridLines += `<polygon points="${pts.join(' ')}" fill="none" stroke="#e8e8e8" stroke-width="1"/>`;
+  }
+
+  let axes = '', labels = '';
+  for (let i = 0; i < n; i++) {
+    const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+    const ex = cx + r * Math.cos(angle), ey = cy + r * Math.sin(angle);
+    axes += `<line x1="${cx}" y1="${cy}" x2="${ex}" y2="${ey}" stroke="#e8e8e8" stroke-width="1"/>`;
+    const lx = cx + (r + 22) * Math.cos(angle), ly = cy + (r + 22) * Math.sin(angle);
+    labels += `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#636e72" font-weight="500">${dims[i]}</text>`;
+  }
+
+  let dataPts = [];
+  for (let i = 0; i < n; i++) {
+    const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+    const val = scores[i] / 10;
+    dataPts.push(`${cx + r * val * Math.cos(angle)},${cy + r * val * Math.sin(angle)}`);
+  }
+
+  let dots = '';
+  dataPts.forEach(pt => {
+    const [x, y] = pt.split(',');
+    dots += `<circle cx="${x}" cy="${y}" r="4" fill="#FF6B6B"/>`;
+  });
+
+  return `<svg viewBox="0 0 ${size} ${size}" width="100%" style="max-width:${size}px; margin:0 auto; display:block;">
+    ${gridLines}${axes}
+    <polygon points="${dataPts.join(' ')}" fill="rgba(255,107,107,0.15)" stroke="#FF6B6B" stroke-width="2"/>
+    ${dots}${labels}
+  </svg>`;
+}
+
+function renderScoreRing(score, size, color) {
+  const r = (size - 8) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (score / 10) * circ;
+  return `<div class="score-ring" style="width:${size}px;height:${size}px;">
+    <svg width="${size}" height="${size}"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#e8e8e8" stroke-width="5"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="5" stroke-dasharray="${circ}" stroke-dashoffset="${offset}" stroke-linecap="round" style="transition:stroke-dashoffset 1.5s ease-out;"/></svg>
+    <div class="value" style="font-size:${size*0.28}px; color:${color};">${score}</div>
+  </div>`;
+}
+
+function renderReport(r) {
+  const imgSrc = document.getElementById('preview-img').src;
+  const name = childInfoData.name;
+  const age = childInfoData.age;
+
+  let html = '';
+
+  // Back + title
+  html += `<div class="top-bar"><button class="btn-icon" onclick="showPage('pg-upload')">←</button><h2>Kết quả phân tích</h2></div>`;
+
+  // Hero
+  html += `<div class="hero-card">
+    <div class="hero-top">
+      <img class="hero-img" src="${imgSrc}" alt="Artwork">
+      <div class="hero-info">
+        <div class="label">Bức tranh của</div>
+        <div class="name">${name} — ${age} tuổi</div>
+        ${r.art_style_tendency ? `<div class="hero-style-tag">🎨 Xu hướng: ${r.art_style_tendency.style}</div>` : ''}
+      </div>
+    </div>
+    <div class="hero-score-row">
+      ${renderScoreRing(r.overall_score || 0, 64, '#FFD93D')}
+      <div class="hero-score-text">
+        <div class="label">Điểm tổng quan</div>
+        <div class="highlight">${r.overall_highlight || ''}</div>
+      </div>
+    </div>
+  </div>`;
+
+  // Radar
+  html += `<div class="radar-card"><h3>Biểu đồ 6 chiều phát triển</h3>${renderRadarSVG(r)}</div>`;
+
+  // 6 Dimensions
+  const dimKeys = ['color_emotion','line_motor','cognitive','imagination','developmental_stage','emotional_expression'];
+  dimKeys.forEach(key => {
+    const m = DIM_META[key], d = r[key];
+    if (!d) return;
+    let extra = '';
+    if (d.dominant_colors?.length) {
+      extra = `<div class="dim-colors">${d.dominant_colors.map(c => `<span class="dim-color-tag">${c}</span>`).join('')}</div>`;
+    }
+    html += `<div class="dim-card">
+      <div class="dim-header">
+        <div class="dim-icon" style="background:${m.color}15">${m.icon}</div>
+        <div class="dim-meta"><div class="dim-name">${m.label}</div><div class="dim-summary">${d.summary||''}</div></div>
+        <div class="dim-score" style="color:${m.color}">${d.score}</div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${d.score*10}%;background:${m.color}"></div></div>
+      <div class="dim-details">${d.details||''}</div>
+      ${extra}
+    </div>`;
+  });
+
+  // Lowenfeld Timeline
+  const si = r.developmental_stage?.stage_index ?? 1;
+  html += `<div class="timeline-card"><h3>📊 Giai đoạn phát triển — Lowenfeld</h3>
+    <div class="timeline-note">${r.developmental_stage?.stage_note||''}</div>`;
+  LOWENFELD_STAGES.forEach((s, i) => {
+    const isActive = i === si, isPast = i < si;
+    const dotBg = isActive ? '#FF6B6B' : isPast ? '#4ECDC4' : '#e0e0e0';
+    const lineColor = isPast ? '#4ECDC4' : '#e8e8e8';
+    const stageClass = isActive ? 'active' : isPast ? 'past' : '';
+    html += `<div class="tl-item">
+      ${i < LOWENFELD_STAGES.length - 1 ? `<div class="tl-line" style="background:${lineColor}"></div>` : ''}
+      <div class="tl-dot ${isActive ? 'active' : ''}" style="background:${dotBg}">${(isActive||isPast) ? '✓' : ''}</div>
+      <div class="tl-content">
+        <div class="tl-stage ${stageClass}">${s.icon} ${s.name} (${s.age} tuổi)</div>
+        <div style="font-size:11px;color:var(--text-light)">${s.desc}${isActive ? '<span class="tl-here">← Bé đang ở đây</span>' : ''}</div>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  // Art Style
+  if (r.art_style_tendency) {
+    html += `<div class="style-card"><h3>🎨 Khám phá phong cách nghệ thuật</h3>
+      <div class="style-name">${r.art_style_tendency.style}</div>
+      <div class="style-desc">${r.art_style_tendency.description||''}</div>
+      ${r.art_style_tendency.famous_artists?.length ? `<div class="style-artists">✨ Tương tự phong cách: <strong>${r.art_style_tendency.famous_artists.join(', ')}</strong></div>` : ''}
+    </div>`;
+  }
+
+  // MI Mapping
+  if (r.intelligence_mapping?.length) {
+    html += `<div class="mi-card"><h3>🧠 Bản đồ trí thông minh đa dạng — Gardner</h3>`;
+    r.intelligence_mapping.forEach(mi => {
+      const icon = MI_ICONS[mi.type] || '🧠';
+      const lvlClass = mi.level === 'high' ? 'mi-high' : mi.level === 'medium' ? 'mi-medium' : 'mi-emerging';
+      const lvlLabel = mi.level === 'high' ? 'Nổi bật' : mi.level === 'medium' ? 'Tốt' : 'Đang phát triển';
+      html += `<div class="mi-item"><div class="mi-icon">${icon}</div>
+        <div class="mi-info"><div class="mi-type">${mi.type}</div><div class="mi-desc">${mi.description||''}</div></div>
+        <span class="mi-level ${lvlClass}">${lvlLabel}</span></div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Conversation starters
+  if (r.conversation_starters?.length) {
+    html += `<div class="convo-card"><h3>💬 Hỏi con về bức tranh</h3>
+      <div class="convo-hint">Thay vì nói "con vẽ đẹp lắm", hãy thử những câu hỏi mở:</div>`;
+    r.conversation_starters.forEach(q => {
+      html += `<div class="convo-item"><span style="flex-shrink:0">💬</span><div class="convo-q">"${q}"</div></div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Tips
+  if (r.parent_tips?.length) {
+    html += `<div class="tips-card"><h3>🌱 3 gợi ý dành cho ba mẹ</h3>`;
+    r.parent_tips.forEach(tip => {
+      html += `<div class="tip-item"><div class="tip-title">${tip.tip}</div>
+        <div class="tip-activity">${tip.activity}</div>
+        <div class="tip-why">💡 ${tip.why}</div></div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Weekly Challenge
+  if (r.weekly_challenge) {
+    html += `<div class="challenge-card"><h3>🏆 Thử thách tuần này</h3>
+      <div class="challenge-name">${r.weekly_challenge.title}</div>
+      <div class="challenge-desc">${r.weekly_challenge.description}</div>
+      ${r.weekly_challenge.materials?.length ? `<div class="challenge-mats"><span style="font-size:12px;font-weight:600">Vật liệu: </span>${r.weekly_challenge.materials.map(m => `<span class="challenge-mat">${m}</span>`).join('')}</div>` : ''}
+      <div class="challenge-goal">🎯 Mục tiêu: ${r.weekly_challenge.learning_goal}</div>
+    </div>`;
+  }
+
+  // Overall message
+  if (r.overall_message) {
+    html += `<div class="message-card"><div class="emoji">💝</div><p>${r.overall_message}</p></div>`;
+  }
+
+  // CTA
+  html += `<div class="cta-card"><h3>Muốn phát triển năng khiếu của bé?</h3>
+    <p>WOW Art — Trung tâm giáo dục nghệ thuật cho trẻ 3-12 tuổi.<br>Phương pháp Human + AI Art Education.</p>
+    <button class="btn-cta">Đặt lịch học thử miễn phí →</button></div>`;
+
+  // New analysis
+  html += `<button class="btn-new" onclick="newAnalysis()">📤 Phân tích tranh khác</button>`;
+
+  // Footer
+  html += `<div class="footer"><p>Powered by WOW Art × AI<br>Dựa trên Lowenfeld, Gardner, Vygotsky, Reggio Emilia</p>
+    <p style="margin-top:4px">Tool mang tính giáo dục, không thay thế đánh giá chuyên môn tâm lý.</p></div>`;
+
+  document.getElementById('report-content').innerHTML = html;
+}
+
+function newAnalysis() {
+  imageBase64 = '';
+  imageMimeType = '';
+  currentResult = null;
+  document.getElementById('preview-img').src = '';
+  document.getElementById('drop-placeholder').style.display = '';
+  document.getElementById('drop-preview').style.display = 'none';
+  document.getElementById('dropzone').classList.remove('has-image');
+  document.getElementById('child-name').value = '';
+  document.getElementById('child-age').value = '';
+  document.getElementById('child-gender').value = '';
+  document.getElementById('child-theme').value = '';
+  document.getElementById('child-context').value = '';
+  checkReady();
+  showPage('pg-upload');
+}
+</script>
+</body>
+</html>
