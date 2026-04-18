@@ -41,10 +41,6 @@ export default async function handler(req, res) {
           generationConfig: {
             temperature: 0.7,
             response_mime_type: "application/json"
-          },
-          // Tắt thinking mode → response nhanh gấp 3-5 lần
-          thinkingConfig: {
-            thinkingBudget: 0
           }
         })
       }
