@@ -235,6 +235,28 @@ input, select, textarea, button { font-family: inherit; }
 .score-ring { position: relative; display: inline-block; }
 .score-ring svg { transform: rotate(-90deg); }
 .score-ring .value { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+
+/* Share Card */
+.share-card-wrap { background: #fff; border-radius: 20px; padding: 18px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); text-align: center; }
+.share-card-wrap h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 12px; }
+.share-canvas-area { border-radius: 16px; overflow: hidden; margin-bottom: 12px; }
+.share-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.share-btn { padding: 10px 18px; border-radius: 10px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.share-btn.save { background: var(--primary); color: #fff; }
+.share-btn.copy { background: var(--secondary); color: #fff; }
+.share-btn.fb { background: #1877F2; color: #fff; }
+
+/* Email Gate Modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.show { display: flex; }
+.modal-box { background: #fff; border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; }
+.modal-box h3 { font-size: 17px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+.modal-box .desc { font-size: 13px; color: var(--text-light); line-height: 1.5; margin-bottom: 18px; }
+.modal-box input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid #ddd; font-size: 14px; outline: none; margin-bottom: 10px; }
+.modal-box input:focus { border-color: var(--primary); }
+.modal-box .benefits { text-align: left; margin-bottom: 16px; font-size: 12px; color: var(--text); line-height: 1.8; }
+.modal-box .btn-submit { width: 100%; padding: 14px; border-radius: 50px; border: none; font-size: 15px; font-weight: 700; color: #fff; background: linear-gradient(135deg, var(--primary), var(--orange)); cursor: pointer; }
+.modal-box .btn-skip { background: none; border: none; color: var(--text-light); font-size: 12px; margin-top: 10px; cursor: pointer; text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -268,7 +290,7 @@ input, select, textarea, button { font-family: inherit; }
         </div>
       </div>
 
-      <p class="social-proof">Đã phân tích <strong>2,847+</strong> bức tranh · Tin tưởng bởi <strong>1,200+</strong> phụ huynh</p>
+      <p class="social-proof">Công cụ miễn phí từ <strong>WOW Art</strong> · Phân tích dựa trên khoa học giáo dục</p>
     </div>
   </div>
 </div>
@@ -554,8 +576,10 @@ function startAnalysis() {
     })
     .catch(err => {
       stopFunFacts();
-      document.getElementById('error-msg').textContent = err.message;
+      const msg = err.message || 'Không thể phân tích. Vui lòng thử lại với ảnh khác.';
+      document.getElementById('error-msg').textContent = msg;
       showPage('pg-error');
+      console.error('Analysis error:', err);
     });
 }
 
@@ -724,6 +748,17 @@ function renderReport(r) {
     </div>`;
   }
 
+  // Shareable Art Style Card
+  html += `<div class="share-card-wrap">
+    <h3>📸 Art Style Card — Chia sẻ với bạn bè</h3>
+    <div class="share-canvas-area" id="share-card-preview"></div>
+    <div class="share-btns">
+      <button class="share-btn save" id="btn-save-card" onclick="saveShareCard()">💾 Lưu ảnh</button>
+      <button class="share-btn copy" onclick="copyShareCard()">📋 Copy</button>
+      <button class="share-btn fb" onclick="shareToFacebook()">📘 Facebook</button>
+    </div>
+  </div>`;
+
   // MI Mapping
   if (r.intelligence_mapping?.length) {
     html += `<div class="mi-card"><h3>🧠 Bản đồ trí thông minh đa dạng — Gardner</h3>`;
@@ -781,7 +816,7 @@ function renderReport(r) {
 
   // Action buttons
   html += `<div style="display:flex;gap:10px;margin-bottom:16px;">
-    <button class="btn-new" onclick="exportPDF()" style="border-color:var(--secondary);color:var(--secondary);">📄 Tải Report PDF</button>
+    <button class="btn-new" onclick="handlePDFClick()" style="border-color:var(--secondary);color:var(--secondary);">📄 Tải Report PDF</button>
     <button class="btn-new" onclick="newAnalysis()">📤 Phân tích tranh khác</button>
   </div>`;
 
@@ -790,6 +825,20 @@ function renderReport(r) {
     <p style="margin-top:4px">Tool mang tính giáo dục, không thay thế đánh giá chuyên môn tâm lý.</p></div>`;
 
   document.getElementById('report-content').innerHTML = html;
+
+  // Auto-generate Share Card preview
+  setTimeout(async () => {
+    try {
+      const canvas = await generateShareCard();
+      const previewArea = document.getElementById('share-card-preview');
+      if (previewArea) {
+        canvas.style.width = '100%';
+        canvas.style.height = 'auto';
+        canvas.style.borderRadius = '12px';
+        previewArea.appendChild(canvas);
+      }
+    } catch(e) { console.log('Share card preview error:', e); }
+  }, 300);
 }
 
 function newAnalysis() {
@@ -813,16 +862,16 @@ function newAnalysis() {
 // EXPORT PDF
 // ═══════════════════════════════════════════════
 async function exportPDF() {
-  const btn = document.querySelector('[onclick="exportPDF()"]');
+  const btn = document.querySelector('[onclick="handlePDFClick()"]');
   const originalText = btn.innerHTML;
   btn.innerHTML = '⏳ Đang tạo PDF...';
   btn.style.pointerEvents = 'none';
 
   try {
     const reportEl = document.getElementById('report-content');
-    // Ẩn nút actions khi chụp
-    const actionBtns = reportEl.querySelectorAll('.btn-new, .cta-card, .top-bar');
-    actionBtns.forEach(el => el.style.display = 'none');
+    // Ẩn nút actions + share card khi chụp PDF
+    const hiddenEls = reportEl.querySelectorAll('.btn-new, .cta-card, .top-bar, .share-card-wrap');
+    hiddenEls.forEach(el => el.style.display = 'none');
 
     const canvas = await html2canvas(reportEl, {
       scale: 2,
@@ -833,7 +882,7 @@ async function exportPDF() {
     });
 
     // Hiện lại
-    actionBtns.forEach(el => el.style.display = '');
+    hiddenEls.forEach(el => el.style.display = '');
 
     const imgData = canvas.toDataURL('image/jpeg', 0.92);
     const { jsPDF } = window.jspdf;
@@ -881,6 +930,243 @@ async function exportPDF() {
   btn.innerHTML = originalText;
   btn.style.pointerEvents = '';
 }
+
+// ═══════════════════════════════════════════════
+// SHAREABLE ART STYLE CARD
+// ═══════════════════════════════════════════════
+async function generateShareCard() {
+  const r = currentResult;
+  const imgSrc = document.getElementById('preview-img')?.src || '';
+  const name = childInfoData.name || '';
+  const age = childInfoData.age || '';
+  const style = r?.art_style_tendency?.style || 'Unique';
+  const artists = r?.art_style_tendency?.famous_artists?.join(', ') || '';
+  const score = r?.overall_score || 0;
+
+  const W = 540, H = 720;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Background gradient
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#1a1a2e');
+  bg.addColorStop(1, '#16213e');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Decorative circles
+  ctx.fillStyle = 'rgba(255,107,107,0.08)';
+  ctx.beginPath(); ctx.arc(W-50, 80, 120, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(78,205,196,0.06)';
+  ctx.beginPath(); ctx.arc(60, H-100, 100, 0, Math.PI*2); ctx.fill();
+
+  // Header
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = '500 13px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🎨 WOW Art — AI Art Analysis', W/2, 36);
+
+  // Artwork image (rounded rect)
+  if (imgSrc) {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = imgSrc;
+    await new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
+
+    const imgSize = 200;
+    const ix = (W - imgSize) / 2, iy = 56;
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(ix, iy, imgSize, imgSize, 16);
+    ctx.clip();
+    // Fit image
+    const scale = Math.max(imgSize / img.width, imgSize / img.height);
+    const sw = img.width * scale, sh = img.height * scale;
+    ctx.drawImage(img, ix - (sw - imgSize)/2, iy - (sh - imgSize)/2, sw, sh);
+    ctx.restore();
+
+    // Border
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.roundRect(ix, iy, imgSize, imgSize, 16); ctx.stroke();
+  }
+
+  // Name & age
+  let y = 286;
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = '500 14px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Bức tranh của', W/2, y);
+  y += 30;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 26px Inter, sans-serif';
+  ctx.fillText(`${name} — ${age} tuổi`, W/2, y);
+
+  // Art Style
+  y += 40;
+  ctx.fillStyle = '#FFD93D';
+  ctx.font = '600 13px Inter, sans-serif';
+  ctx.fillText('PHONG CÁCH NGHỆ THUẬT', W/2, y);
+  y += 32;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 30px Inter, sans-serif';
+  ctx.fillText(style, W/2, y);
+
+  if (artists) {
+    y += 26;
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '400 13px Inter, sans-serif';
+    ctx.fillText(`Gợi nhớ đến: ${artists}`, W/2, y);
+  }
+
+  // Score circle
+  y += 50;
+  const scoreX = W/2, scoreR = 32;
+  ctx.beginPath(); ctx.arc(scoreX, y, scoreR, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,217,61,0.15)'; ctx.fill();
+  ctx.strokeStyle = '#FFD93D'; ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(scoreX, y, scoreR, -Math.PI/2, -Math.PI/2 + (score/10)*Math.PI*2);
+  ctx.stroke();
+  ctx.fillStyle = '#FFD93D';
+  ctx.font = '800 22px Inter, sans-serif';
+  ctx.fillText(score + '', scoreX, y + 8);
+
+  // 6 mini scores
+  y += 55;
+  const dims = ['Màu sắc','Nét vẽ','Tư duy','Sáng tạo','Phát triển','Cảm xúc'];
+  const scores = [
+    r?.color_emotion?.score||0, r?.line_motor?.score||0, r?.cognitive?.score||0,
+    r?.imagination?.score||0, r?.developmental_stage?.score||0, r?.emotional_expression?.score||0
+  ];
+  const colors = ['#FF6B6B','#4ECDC4','#A29BFE','#FFD93D','#FF8E53','#FD79A8'];
+  const barW = 60, gap = 14, totalW = dims.length * barW + (dims.length-1) * gap;
+  let bx = (W - totalW) / 2;
+  dims.forEach((d, i) => {
+    // Bar bg
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.beginPath(); ctx.roundRect(bx, y, barW, 6, 3); ctx.fill();
+    // Bar fill
+    ctx.fillStyle = colors[i];
+    ctx.beginPath(); ctx.roundRect(bx, y, barW * (scores[i]/10), 6, 3); ctx.fill();
+    // Label
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '500 9px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(d, bx + barW/2, y + 18);
+    // Score
+    ctx.fillStyle = colors[i];
+    ctx.font = '700 10px Inter, sans-serif';
+    ctx.fillText(scores[i]+'', bx + barW/2, y - 6);
+    bx += barW + gap;
+  });
+
+  // Footer
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.font = '400 11px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Phân tích tranh con bạn tại', W/2, H - 38);
+  ctx.fillStyle = '#FF6B6B';
+  ctx.font = '700 13px Inter, sans-serif';
+  ctx.fillText(window.location.origin, W/2, H - 20);
+
+  return canvas;
+}
+
+async function saveShareCard() {
+  const btn = document.getElementById('btn-save-card');
+  btn.textContent = '⏳ Đang tạo...';
+  try {
+    const canvas = await generateShareCard();
+    const link = document.createElement('a');
+    link.download = `WOW-Art-${childInfoData.name || 'card'}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch(e) { alert('Không thể tạo card: ' + e.message); }
+  btn.textContent = '💾 Lưu ảnh';
+}
+
+async function copyShareCard() {
+  try {
+    const canvas = await generateShareCard();
+    canvas.toBlob(async blob => {
+      await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
+      alert('Đã copy ảnh! Dán vào Zalo/Facebook để chia sẻ.');
+    });
+  } catch(e) { alert('Trình duyệt chưa hỗ trợ copy ảnh. Hãy dùng nút Lưu ảnh.'); }
+}
+
+function shareToFacebook() {
+  window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(window.location.href), '_blank');
+}
+
+// ═══════════════════════════════════════════════
+// EMAIL GATE FOR PDF
+// ═══════════════════════════════════════════════
+let userEmail = '';
+
+function showEmailGate() {
+  document.getElementById('email-modal').classList.add('show');
+}
+
+function closeEmailGate() {
+  document.getElementById('email-modal').classList.remove('show');
+}
+
+function submitEmailAndDownload() {
+  const email = document.getElementById('gate-email').value.trim();
+  if (!email || !email.includes('@')) {
+    document.getElementById('gate-email').style.borderColor = '#FF6B6B';
+    return;
+  }
+  userEmail = email;
+  closeEmailGate();
+
+  // Gửi email về webhook (nếu có) hoặc log
+  try {
+    fetch('/api/lead', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        email: email,
+        childName: childInfoData.name,
+        childAge: childInfoData.age,
+        timestamp: new Date().toISOString(),
+        source: 'pdf_download'
+      })
+    }).catch(() => {}); // silent fail nếu chưa có API
+  } catch(e) {}
+
+  // Bắt đầu tải PDF
+  exportPDF();
+}
+
+function handlePDFClick() {
+  if (userEmail) {
+    exportPDF(); // Đã nhập email rồi → tải luôn
+  } else {
+    showEmailGate(); // Chưa nhập → hiện modal
+  }
+}
 </script>
+
+<!-- Email Gate Modal -->
+<div class="modal-overlay" id="email-modal">
+  <div class="modal-box">
+    <h3>📄 Tải Report PDF</h3>
+    <p class="desc">Nhập email để nhận report và bản tin hàng tuần từ WOW Art</p>
+    <input type="email" id="gate-email" placeholder="Email của ba mẹ..." autocomplete="email">
+    <div class="benefits">
+      ✅ Nhận bản phân tích PDF đầy đủ<br>
+      ✅ Bản tin hàng tuần: nuôi dưỡng sự sáng tạo của con<br>
+      ✅ Tài liệu giúp con tự tin nghĩ và nói<br>
+      ✅ Hoạt động art-at-home mỗi tuần
+    </div>
+    <button class="btn-submit" onclick="submitEmailAndDownload()">Tải PDF & Đăng ký bản tin</button>
+    <button class="btn-skip" onclick="closeEmailGate()">Để sau</button>
+  </div>
+</div>
+
 </body>
 </html>
