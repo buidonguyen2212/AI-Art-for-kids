@@ -6,6 +6,8 @@
 <title>WOW Art — AI Art Analysis</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root {
   --primary: #FF6B6B;
@@ -491,17 +493,41 @@ async function callGeminiAPI() {
 
   childInfoData = { name, age, gender, theme, context };
 
+  // Kiểm tra kích thước ảnh — nén mạnh hơn nếu quá lớn
+  let imgToSend = imageBase64;
+  const sizeKB = Math.round((imageBase64.length * 3) / 4 / 1024);
+  if (sizeKB > 800) {
+    // Nén thêm lần nữa nếu vẫn > 800KB
+    const img = new Image();
+    img.src = 'data:' + imageMimeType + ';base64,' + imageBase64;
+    await new Promise(r => img.onload = r);
+    const c = document.createElement('canvas');
+    const maxW = 800;
+    let w = img.width, h = img.height;
+    if (w > maxW) { h = (maxW / w) * h; w = maxW; }
+    c.width = w; c.height = h;
+    c.getContext('2d').drawImage(img, 0, 0, w, h);
+    imgToSend = c.toDataURL('image/jpeg', 0.5).split(',')[1];
+  }
+
   const res = await fetch('/api/analyze', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      imageBase64: imageBase64,
-      mimeType: imageMimeType,
+      imageBase64: imgToSend,
+      mimeType: 'image/jpeg',
       childInfo: { name, age, gender, theme, context }
     })
   });
 
-  const data = await res.json();
+  // Xử lý response — đề phòng server trả về không phải JSON
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    throw new Error('Server trả về lỗi: ' + text.substring(0, 150));
+  }
 
   if (!res.ok) {
     throw new Error(data?.error || `Lỗi server: ${res.status}`);
@@ -750,11 +776,14 @@ function renderReport(r) {
 
   // CTA
   html += `<div class="cta-card"><h3>Muốn phát triển năng khiếu của bé?</h3>
-    <p>WOW Art — Trung tâm giáo dục nghệ thuật cho trẻ 3-12 tuổi.<br>Phương pháp Human + AI Art Education.</p>
-    <button class="btn-cta">Đặt lịch học thử miễn phí →</button></div>`;
+    <p>WOW Art — Trung tâm Vẽ tư duy và Thuyết trình cho trẻ từ 3-10 tuổi.<br>Phương pháp Y3K đến từ CCE (UK).</p>
+    <a href="https://zalo.me/g/sywnvs597" target="_blank" style="text-decoration:none"><button class="btn-cta">Đăng ký học thử miễn phí →</button></a></div>`;
 
-  // New analysis
-  html += `<button class="btn-new" onclick="newAnalysis()">📤 Phân tích tranh khác</button>`;
+  // Action buttons
+  html += `<div style="display:flex;gap:10px;margin-bottom:16px;">
+    <button class="btn-new" onclick="exportPDF()" style="border-color:var(--secondary);color:var(--secondary);">📄 Tải Report PDF</button>
+    <button class="btn-new" onclick="newAnalysis()">📤 Phân tích tranh khác</button>
+  </div>`;
 
   // Footer
   html += `<div class="footer"><p>Powered by WOW Art × AI<br>Dựa trên Lowenfeld, Gardner, Vygotsky, Reggio Emilia</p>
@@ -778,6 +807,79 @@ function newAnalysis() {
   document.getElementById('child-context').value = '';
   checkReady();
   showPage('pg-upload');
+}
+
+// ═══════════════════════════════════════════════
+// EXPORT PDF
+// ═══════════════════════════════════════════════
+async function exportPDF() {
+  const btn = document.querySelector('[onclick="exportPDF()"]');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '⏳ Đang tạo PDF...';
+  btn.style.pointerEvents = 'none';
+
+  try {
+    const reportEl = document.getElementById('report-content');
+    // Ẩn nút actions khi chụp
+    const actionBtns = reportEl.querySelectorAll('.btn-new, .cta-card, .top-bar');
+    actionBtns.forEach(el => el.style.display = 'none');
+
+    const canvas = await html2canvas(reportEl, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#fff8f0',
+      scrollY: -window.scrollY,
+      windowWidth: 480,
+    });
+
+    // Hiện lại
+    actionBtns.forEach(el => el.style.display = '');
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = pdf.internal.pageSize.getHeight();
+    const margin = 8;
+    const contentW = pdfW - margin * 2;
+    const imgRatio = canvas.height / canvas.width;
+    const contentH = contentW * imgRatio;
+
+    // Nếu report dài hơn 1 trang → chia nhiều trang
+    let yOffset = 0;
+    const pageContentH = pdfH - margin * 2;
+    const totalPages = Math.ceil(contentH / pageContentH);
+
+    for (let page = 0; page < totalPages; page++) {
+      if (page > 0) pdf.addPage();
+
+      const sourceY = (page * pageContentH / contentH) * canvas.height;
+      const sourceH = Math.min((pageContentH / contentH) * canvas.height, canvas.height - sourceY);
+
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = sourceH;
+      tempCanvas.getContext('2d').drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, sourceH);
+
+      const pageImg = tempCanvas.toDataURL('image/jpeg', 0.92);
+      const drawH = (sourceH / canvas.height) * contentH;
+      pdf.addImage(pageImg, 'JPEG', margin, margin, contentW, drawH);
+
+      // Watermark footer
+      pdf.setFontSize(8);
+      pdf.setTextColor(180, 180, 180);
+      pdf.text('WOW Art — AI Art Analysis · wowart.vn', pdfW / 2, pdfH - 4, { align: 'center' });
+    }
+
+    const childName = childInfoData.name || 'be';
+    pdf.save(`WOW-Art-Report-${childName}.pdf`);
+
+  } catch (err) {
+    alert('Không thể tạo PDF: ' + err.message);
+  }
+
+  btn.innerHTML = originalText;
+  btn.style.pointerEvents = '';
 }
 </script>
 </body>
