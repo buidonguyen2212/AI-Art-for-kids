@@ -222,6 +222,9 @@ input, select, textarea, button { font-family: inherit; }
 
 .footer { text-align: center; margin-top: 28px; font-size: 11px; color: var(--text-light); line-height: 1.6; }
 
+/* PDF-only content — ẩn trên web, hiện khi export PDF */
+.pdf-only-content { display: none; }
+
 /* Error */
 .error-page { background: var(--cream); display: flex; align-items: center; justify-content: center; }
 .error-inner { text-align: center; padding: 40px 24px; max-width: 360px; }
@@ -788,9 +791,9 @@ function renderReport(r) {
     html += `</div>`;
   }
 
-  // Tips
+  // Tips — chỉ hiện trong PDF (ẩn trên web, incentive để lại email)
   if (r.parent_tips?.length) {
-    html += `<div class="tips-card"><h3>🌱 3 gợi ý dành cho ba mẹ</h3>`;
+    html += `<div class="tips-card pdf-only-content"><h3>🌱 3 gợi ý dành cho ba mẹ</h3>`;
     r.parent_tips.forEach(tip => {
       html += `<div class="tip-item"><div class="tip-title">${tip.tip}</div>
         <div class="tip-activity">${tip.activity}</div>
@@ -799,9 +802,9 @@ function renderReport(r) {
     html += `</div>`;
   }
 
-  // Weekly Challenge
+  // Weekly Challenge — chỉ hiện trong PDF
   if (r.weekly_challenge) {
-    html += `<div class="challenge-card"><h3>🏆 Thử thách tuần này</h3>
+    html += `<div class="challenge-card pdf-only-content"><h3>🏆 Thử thách tuần này</h3>
       <div class="challenge-name">${r.weekly_challenge.title}</div>
       <div class="challenge-desc">${r.weekly_challenge.description}</div>
       ${r.weekly_challenge.materials?.length ? `<div class="challenge-mats"><span style="font-size:12px;font-weight:600">Vật liệu: </span>${r.weekly_challenge.materials.map(m => `<span class="challenge-mat">${m}</span>`).join('')}</div>` : ''}
@@ -820,9 +823,12 @@ function renderReport(r) {
     <a href="https://zalo.me/g/sywnvs597" target="_blank" style="text-decoration:none"><button class="btn-cta">Đăng ký học thử miễn phí →</button></a></div>`;
 
   // Action buttons
-  html += `<div style="display:flex;gap:10px;margin-bottom:16px;">
-    <button class="btn-new" onclick="handlePDFClick()" style="border-color:var(--secondary);color:var(--secondary);">📄 Tải Report PDF</button>
-    <button class="btn-new" onclick="newAnalysis()">📤 Phân tích tranh khác</button>
+  html += `<div style="margin-bottom:16px;">
+    <div style="display:flex;gap:10px;margin-bottom:6px;">
+      <button class="btn-new" onclick="handlePDFClick()" style="border-color:var(--secondary);color:var(--secondary);">📄 Tải Report PDF</button>
+      <button class="btn-new" onclick="newAnalysis()">📤 Phân tích tranh khác</button>
+    </div>
+    <div style="text-align:center;font-size:11px;color:var(--text-light);line-height:1.4;">với gợi ý phát triển dành riêng cho bé ${name} 🌱</div>
   </div>`;
 
   // Footer
@@ -878,6 +884,10 @@ async function exportPDF() {
     const hiddenEls = reportEl.querySelectorAll('.btn-new, .cta-card, .top-bar, .share-card-wrap');
     hiddenEls.forEach(el => el.style.display = 'none');
 
+    // Hiện tips + challenge (chỉ có trong PDF)
+    const pdfOnlyEls = reportEl.querySelectorAll('.pdf-only-content');
+    pdfOnlyEls.forEach(el => el.style.display = 'block');
+
     const canvas = await html2canvas(reportEl, {
       scale: 2,
       useCORS: true,
@@ -886,8 +896,9 @@ async function exportPDF() {
       windowWidth: 480,
     });
 
-    // Hiện lại
+    // Khôi phục lại
     hiddenEls.forEach(el => el.style.display = '');
+    pdfOnlyEls.forEach(el => el.style.display = 'none');
 
     const imgData = canvas.toDataURL('image/jpeg', 0.92);
     const { jsPDF } = window.jspdf;
@@ -953,21 +964,20 @@ async function generateShareCard() {
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // Background gradient
-  const bg = ctx.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, '#1a1a2e');
-  bg.addColorStop(1, '#16213e');
-  ctx.fillStyle = bg;
+  // Background trắng
+  ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, W, H);
 
-  // Decorative circles
-  ctx.fillStyle = 'rgba(255,107,107,0.08)';
-  ctx.beginPath(); ctx.arc(W-50, 80, 120, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'rgba(78,205,196,0.06)';
-  ctx.beginPath(); ctx.arc(60, H-100, 100, 0, Math.PI*2); ctx.fill();
+  // Decorative circles nhẹ
+  ctx.fillStyle = 'rgba(255,107,107,0.06)';
+  ctx.beginPath(); ctx.arc(W-40, 90, 130, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(78,205,196,0.05)';
+  ctx.beginPath(); ctx.arc(50, H-80, 110, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,217,61,0.05)';
+  ctx.beginPath(); ctx.arc(W/2, H/2, 80, 0, Math.PI*2); ctx.fill();
 
   // Header
-  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillStyle = '#636e72';
   ctx.font = '500 13px Inter, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('🎨 WOW Art — AI Art Analysis', W/2, 36);
@@ -981,46 +991,55 @@ async function generateShareCard() {
 
     const imgSize = 200;
     const ix = (W - imgSize) / 2, iy = 56;
+
+    // Shadow nhẹ
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.1)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetY = 4;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.roundRect(ix, iy, imgSize, imgSize, 16); ctx.fill();
+    ctx.restore();
+
     ctx.save();
     ctx.beginPath();
     ctx.roundRect(ix, iy, imgSize, imgSize, 16);
     ctx.clip();
-    // Fit image
     const scale = Math.max(imgSize / img.width, imgSize / img.height);
     const sw = img.width * scale, sh = img.height * scale;
     ctx.drawImage(img, ix - (sw - imgSize)/2, iy - (sh - imgSize)/2, sw, sh);
     ctx.restore();
 
-    // Border
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = 3;
+    // Border nhẹ
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 2;
     ctx.beginPath(); ctx.roundRect(ix, iy, imgSize, imgSize, 16); ctx.stroke();
   }
 
   // Name & age
   let y = 286;
-  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.fillStyle = '#636e72';
   ctx.font = '500 14px Inter, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('Bức tranh của', W/2, y);
   y += 30;
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = '#1a1a2e';
   ctx.font = '800 26px Inter, sans-serif';
   ctx.fillText(`${name} — ${age} tuổi`, W/2, y);
 
   // Art Style
   y += 40;
-  ctx.fillStyle = '#FFD93D';
+  ctx.fillStyle = '#FF6B6B';
   ctx.font = '600 13px Inter, sans-serif';
   ctx.fillText('PHONG CÁCH NGHỆ THUẬT', W/2, y);
   y += 32;
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = '#1a1a2e';
   ctx.font = '800 30px Inter, sans-serif';
   ctx.fillText(style, W/2, y);
 
   if (artists) {
     y += 26;
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillStyle = '#636e72';
     ctx.font = '400 13px Inter, sans-serif';
     ctx.fillText(`Gợi nhớ đến: ${artists}`, W/2, y);
   }
@@ -1029,12 +1048,12 @@ async function generateShareCard() {
   y += 50;
   const scoreX = W/2, scoreR = 32;
   ctx.beginPath(); ctx.arc(scoreX, y, scoreR, 0, Math.PI*2);
-  ctx.fillStyle = 'rgba(255,217,61,0.15)'; ctx.fill();
-  ctx.strokeStyle = '#FFD93D'; ctx.lineWidth = 3;
+  ctx.fillStyle = 'rgba(255,107,107,0.08)'; ctx.fill();
+  ctx.strokeStyle = '#FF6B6B'; ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.arc(scoreX, y, scoreR, -Math.PI/2, -Math.PI/2 + (score/10)*Math.PI*2);
   ctx.stroke();
-  ctx.fillStyle = '#FFD93D';
+  ctx.fillStyle = '#FF6B6B';
   ctx.font = '800 22px Inter, sans-serif';
   ctx.fillText(score + '', scoreX, y + 8);
 
@@ -1050,13 +1069,13 @@ async function generateShareCard() {
   let bx = (W - totalW) / 2;
   dims.forEach((d, i) => {
     // Bar bg
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillStyle = 'rgba(0,0,0,0.06)';
     ctx.beginPath(); ctx.roundRect(bx, y, barW, 6, 3); ctx.fill();
     // Bar fill
     ctx.fillStyle = colors[i];
     ctx.beginPath(); ctx.roundRect(bx, y, barW * (scores[i]/10), 6, 3); ctx.fill();
     // Label
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillStyle = '#636e72';
     ctx.font = '500 9px Inter, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(d, bx + barW/2, y + 18);
@@ -1068,7 +1087,7 @@ async function generateShareCard() {
   });
 
   // Footer
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fillStyle = '#aaa';
   ctx.font = '400 11px Inter, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('Phân tích tranh con bạn tại', W/2, H - 38);
